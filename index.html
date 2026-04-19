@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Mental Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top toolbar -->
+      <div id="toolbar">
+        <span class="toolbar-brand">Simple Mental Map</span>
+        <div class="toolbar-actions">
+          <button id="file-menu">File</button>
+        </div>
+      </div>
+
+      <!-- Left sidebar -->
+      <div id="sidebar">
+        <!-- 1. Maps Section -->
+        <div id="map-list-container"></div>
+        <div id="sidebar-detail" style="display:none;">
+          <label class="sidebar-label">Label</label>
+          <input type="text" id="node-label" class="sidebar-input" placeholder="Node text" />
+          <div class="sidebar-meta">
+            <label class="sidebar-label">ID</label>
+            <span id="node-id" class="sidebar-id">—</span>
+          </div>
+          <div class="sidebar-meta">
+            <label class="sidebar-label">Children</label>
+            <span id="node-children-count" class="sidebar-id">0</span>
+          </div>
+          <hr class="sidebar-divider" />
+          <button id="add-child" class="sidebar-btn primary">+ Add child</button>
+          <button id="delete-node" class="sidebar-btn danger">Delete</button>
+        </div>
+
+        
+        <!-- 2. Quick Actions -->
+        <div class="sidebar-section-header">Quick Actions</div>
+        <div id="sidebar-actions">
+          <div class="palette-item" draggable="true" id="new-node-template">+ New node</div>
+        </div>
+
+        <hr class="sidebar-divider" />
+        
+        <div id="sidebar-empty"></div>
+        <!-- 4. Custom Design (Bottom & Collapsed) -->
+        <div id="design-container" class="collapsed">
+          <div class="sidebar-section-header design-header">
+            <span>Custom Design</span>
+            <span class="design-toggle">▼</span>
+          </div>
+          <div class="design-body">
+            <div class="sidebar-action-group">
+              <label class="sidebar-label">Theme</label>
+              <select id="theme-select" class="sidebar-input">
+                <option value="classic">Classic Dark</option>
+                <option value="cyberpunk">Cyberpunk Neon</option>
+                <option value="clean">Clean</option>
+                <option value="forest">Forest Calm</option>
+              </select>
+            </div>
+
+            <div class="sidebar-action-group">
+              <div class="sidebar-label-row">
+                <label class="sidebar-label">Font Size</label>
+                <span id="font-size-val" class="sidebar-val-hint">13px</span>
+              </div>
+              <input type="range" id="font-size-slider" min="10" max="24" step="1" value="13" class="sidebar-slider" />
+            </div>
+
+            <div class="sidebar-action-group">
+              <div class="sidebar-label-row">
+                <label class="sidebar-label">Branch Thickness</label>
+                <span id="branch-width-val" class="sidebar-val-hint">1.5px</span>
+              </div>
+              <input type="range" id="branch-width-slider" min="0.5" max="5" step="0.5" value="1.5" class="sidebar-slider" />
+            </div>
+
+            <div class="sidebar-action-group">
+              <div class="sidebar-label-row">
+                <label class="sidebar-label">Spacing</label>
+                <span id="spacing-val" class="sidebar-val-hint">80</span>
+              </div>
+              <input type="range" id="spacing-slider" min="40" max="150" step="10" value="80" class="sidebar-slider" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <svg id="mindmap"></svg>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+    <!-- Hidden file input for Import -->
+    <input type="file" id="import-file-input" style="display: none;" accept=".md,.txt" />
+  </body>
+</html>
