@@ -48,12 +48,23 @@ body {
 }
 
 .toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   font-size: 14px;
   color: var(--text);
   letter-spacing: -0.01em;
-  padding-right: 8px;
+  padding-right: 16px;
   border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.brand-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  stroke-width: 1.8px;
 }
 
 .toolbar-actions {
