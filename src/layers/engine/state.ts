@@ -102,4 +102,27 @@ export class StateEngine {
       Object.assign(node.style, style);
     }
   }
+
+  getMaxFontSize(baseFontSize: number): number {
+    let maxFs = baseFontSize;
+    const findMax = (n: MapNode) => {
+      if (n.style?.fontSize && n.style.fontSize > maxFs) {
+        maxFs = n.style.fontSize;
+      }
+      n.children.forEach(findMax);
+    };
+    findMax(this.root);
+    return maxFs;
+  }
+
+  buildRenderTree(styleFn: (node: MapNode) => string): MapNode {
+    const build = (node: MapNode): MapNode => {
+      return {
+        ...node,
+        content: styleFn(node),
+        children: node.children.map(build)
+      };
+    };
+    return build(this.root);
+  }
 }

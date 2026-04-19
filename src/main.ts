@@ -1,10 +1,10 @@
 import { Markmap } from 'markmap-view';
 import * as d3 from 'd3';
 import { MapController } from './layers/engine/controller';
-import { MapNode } from './layers/markdown/parser';
 import { MapStore } from './layers/engine/store';
 import { encodeMarkdown } from './layers/markdown/encoder';
 import { encodePlainText } from './layers/markdown/text-encoder';
+import { encodeOPML } from './layers/markdown/opml';
 import { initDND } from './layers/interaction/dnd';
 import { initPalette } from './ui/palette';
 import { initMapList } from './ui/map-list';
@@ -13,6 +13,7 @@ import { showModal, showPromptModal, showSelectionModal } from './ui/modal';
 import { downloadBlob, getSvgSource } from './utils/export-utils';
 import { applyTheme, THEMES } from './utils/theme';
 import { htmlToMarkdown, markdownToHtml } from './utils/html-md';
+import { throttle } from './utils/perf';
 import './style.css';
 
 const DEFAULT_MD = `# 🚀 Mental Map Demo
@@ -44,6 +45,7 @@ const mm = Markmap.create(svg);
 
 // Selection state
 let selectedNodeId: string | null = null;
+let pendingEditId: string | null = null;
 let autoSaveTimer: any;
 
 // Sidebar elements
@@ -205,6 +207,7 @@ initMenu({
           options: [
             { id: 'md', label: 'Markdown', description: '.md file for Obsidian, Logseq, etc.' },
             { id: 'txt', label: 'Plain Text', description: '.txt file with indentation-based structure' },
+            { id: 'opml', label: 'OPML / XML', description: '.opml file for Miro, MindNode, XMind, etc.' },
             { id: 'svg', label: 'Vector Graphic (SVG)', description: 'Scalable vector image for printing or editing' }
           ],
           onSelect: async (format) => {
@@ -219,6 +222,9 @@ initMenu({
             } else if (format === 'txt') {
               const content = encodePlainText(root);
               downloadBlob(new Blob([content], { type: 'text/plain' }), `${baseName}.txt`);
+            } else if (format === 'opml') {
+              const content = encodeOPML(root, baseName);
+              downloadBlob(new Blob([content], { type: 'text/xml' }), `${baseName}.opml`);
             } else if (format === 'svg') {
               const source = getSvgSource(svg);
               downloadBlob(new Blob([source], { type: 'image/svg+xml' }), `${baseName}.svg`);
@@ -310,8 +316,12 @@ function startInlineEdit(nodeId: string, nodeElement: Element) {
 
   const commit = () => {
     const newValMd = editor.innerText.trim();
-    if (newValMd !== undefined && newValMd !== node.content) {
-      node.content = newValMd || '...';
+    // Always call updateView to clear any temporary 'hidden' states (like pendingEditId)
+    // and to ensure the UI is in a consistent state even if text didn't change.
+    if (newValMd !== undefined) {
+      if (newValMd !== node.content) {
+        node.content = newValMd || '...';
+      }
       updateView();
       showSidebar(nodeId);
     }
@@ -334,6 +344,7 @@ function startInlineEdit(nodeId: string, nodeElement: Element) {
     }
     if (e.key === 'Escape') {
       cleanup();
+      updateView();
     }
   });
 
@@ -367,27 +378,27 @@ const attachDrag = initDND({
   onAddChild: (parentId) => {
     const newNodeId = engine.addNode(parentId, 'New node');
     if (newNodeId) {
+      selectedNodeId = newNodeId;
+      pendingEditId = newNodeId;
       updateView();
       
-      // Wait for the transition to finish before showing the editor
-      // Matches the 500ms duration used in updateView
-      const nodeCount = engine.countNodes(engine.getRoot());
-      const delay = nodeCount > 100 ? 50 : 600; 
+      // Since animations are disabled, we only need a tiny delay for the DOM to settle
+      const delay = 50; 
 
       setTimeout(() => {
         const newNodeElement = d3.selectAll('.markmap-node')
           .filter((d: any) => (d.data?.id || d.id) === newNodeId)
           .node() as Element;
         
-        if (newNodeElement) {
-          selectedNodeId = newNodeId;
-          showSidebar(newNodeId);
-          startInlineEdit(newNodeId, newNodeElement);
-        }
-      }, delay);
+          if (newNodeElement) {
+            showSidebar(newNodeId);
+            startInlineEdit(newNodeId, newNodeElement);
+          }
+          pendingEditId = null;
+        }, delay);
+      }
     }
-  }
-});
+  });
 
 // Initialize Palette
 initPalette(engine, updateView, svg as SVGSVGElement);
@@ -469,24 +480,11 @@ function applyLayoutSettings() {
   
   mm.setOptions({
     spacingHorizontal: settings.spacing,
-    spacingVertical: (() => {
-      // Scan for the largest font size in the current tree to find a safe global gap
-      const allNodes = engine.serialize();
-      let maxFs = settings.fontSize;
-      const findMax = (n: MapNode) => {
-        if (n.style?.fontSize && n.style.fontSize > maxFs) maxFs = n.style.fontSize;
-        n.children.forEach(findMax);
-      };
-      findMax(allNodes);
-      // Return a safe numeric gap
-      return Math.max(10, Math.floor(maxFs * 0.6));
-    })(),
+    spacingVertical: Math.max(15, Math.floor(engine.getMaxFontSize(settings.fontSize) * 0.8)),
     paddingX: 16,
     color: (node: any) => {
-      // Per-node override
-      const nodeData = engine.findNode(node.id);
-      if (nodeData?.style?.lineColor) return nodeData.style.lineColor;
-      return colorScale(node.state?.path || node.id);
+      // Use the pre-attached style if available, avoiding O(N) search
+      return node.data?.style?.lineColor || colorScale(node.state?.path || node.id);
     }
   });
 }
@@ -494,48 +492,48 @@ function applyLayoutSettings() {
 // Initialize
 applyLayoutSettings();
 
-fontSizeSlider?.addEventListener('input', () => {
+fontSizeSlider?.addEventListener('input', throttle(() => {
   const val = parseInt(fontSizeSlider.value);
   controller.setLayoutSettings({ fontSize: val });
   applyLayoutSettings();
-});
+}, 16));
 
-branchWidthSlider?.addEventListener('input', () => {
+branchWidthSlider?.addEventListener('input', throttle(() => {
   const val = parseFloat(branchWidthSlider.value);
   controller.setLayoutSettings({ branchWidth: val });
   applyLayoutSettings();
-});
+}, 16));
 
-spacingSlider?.addEventListener('input', () => {
+spacingSlider?.addEventListener('input', throttle(() => {
   const val = parseInt(spacingSlider.value);
   controller.setLayoutSettings({ spacing: val });
   applyLayoutSettings();
   updateView(); // Re-layout necessary for spacing change
-});
+}, 16));
 
 // Per-node listeners
-nodeFontSizeSlider?.addEventListener('input', () => {
+nodeFontSizeSlider?.addEventListener('input', throttle(() => {
   if (selectedNodeId) {
     const val = parseInt(nodeFontSizeSlider.value);
     controller.updateNodeStyle(selectedNodeId, { fontSize: val });
     if (nodeFontSizeVal) nodeFontSizeVal.textContent = `${val}px`;
     updateView();
   }
-});
+}, 16));
 
-nodeTextColorPicker?.addEventListener('input', () => {
+nodeTextColorPicker?.addEventListener('input', throttle(() => {
   if (selectedNodeId) {
     controller.updateNodeStyle(selectedNodeId, { textColor: nodeTextColorPicker.value });
     updateView();
   }
-});
+}, 16));
 
-nodeLineColorPicker?.addEventListener('input', () => {
+nodeLineColorPicker?.addEventListener('input', throttle(() => {
   if (selectedNodeId) {
     controller.updateNodeStyle(selectedNodeId, { lineColor: nodeLineColorPicker.value });
     updateView();
   }
-});
+}, 16));
 
 resetNodeStyleBtn?.addEventListener('click', () => {
   if (selectedNodeId) {
@@ -554,29 +552,33 @@ designHeader?.addEventListener('click', () => {
 });
 
 function updateView() {
-  const data = engine.serialize();
-  
-  // 5. Inject per-node styles into the content for rendering
-  const injectStyles = (node: MapNode) => {
+  const styledTree = engine.buildRenderTree((node) => {
     // Convert raw Markdown to HTML for rendering (data model stores raw MD)
-    node.content = markdownToHtml(node.content);
+    let content = markdownToHtml(node.content);
 
-    if (node.style?.textColor || node.style?.fontSize) {
-      const colorStyle = node.style?.textColor ? `color: ${node.style.textColor};` : '';
-      const sizeStyle = node.style?.fontSize ? `font-size: ${node.style.fontSize}px;` : '';
-      node.content = `<span style="${colorStyle}${sizeStyle}">${node.content}</span>`;
-    }
-    node.children.forEach(injectStyles);
-  };
-  injectStyles(data);
+    // Internal state check for "hiding" the new node until editor is ready
+    const isPending = node.id === pendingEditId;
+    
+    // Build robust wrapper to prevent clipping and remove unwanted backgrounds
+    const styles = [
+      node.style?.textColor ? `color: ${node.style.textColor}` : '',
+      node.style?.fontSize ? `font-size: ${node.style.fontSize}px` : '',
+      isPending ? 'visibility: hidden' : '',
+      'line-height: normal',
+      'padding: 4px 0',
+      'display: block',
+      'background: transparent !important'
+    ].filter(Boolean).join('; ');
 
-  // Perf: disable transitions for large maps
-  const nodeCount = engine.countNodes(data);
-  mm.setOptions({ duration: nodeCount > 100 ? 0 : 500 });
+    return `<div style="${styles}">${content}</div>`;
+  });
 
-  // Force a fresh object reference to ensure Markmap's D3 diffing triggers a visual update
-  const rootClone = JSON.parse(JSON.stringify(data));
-  mm.setData(rootClone as any);
+  // Perf: completely disabled animations for an instant feel
+  mm.setOptions({ duration: 0 });
+
+  // Pass the styled tree directly. Reference change in root will trigger D3 update.
+  mm.setData(styledTree as any);
+
   
   // Removed automatic mm.fit() from here to prevent "dislocation" during edits
 
@@ -587,17 +589,23 @@ function updateView() {
     }
     attachDrag();
 
-    // RESTORE VISUAL SELECTION
-    if (selectedNodeId) {
-      d3.selectAll('.markmap-node')
-        .filter((d: any) => (d.data?.id || d.id) === selectedNodeId)
-        .classed('selected', true);
-    }
+      // RESTORE VISUAL SELECTION & HIDE PENDING EDITS
+      if (selectedNodeId) {
+        d3.selectAll('.markmap-node')
+          .filter((d: any) => (d.data?.id || d.id) === selectedNodeId)
+          .classed('selected', true);
+      }
+      
+      if (pendingEditId) {
+        d3.selectAll('.markmap-node')
+          .filter((d: any) => (d.data?.id || d.id) === pendingEditId)
+          .classed('editing-source', true);
+      }
 
     if (typeof observer !== 'undefined') {
       observer.observe(svg, { childList: true, subtree: true });
     }
-  }, 500);
+  }, 50);
 
   scheduleAutoSave();
 }

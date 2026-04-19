@@ -10,6 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <!-- Mobile Warning -->
+    <div id="mobile-warning">
+      <div class="warning-card">
+        <div class="warning-icon">📱</div>
+        <h1>Desktop Only</h1>
+        <p>Simple Mental Map is currently optimized for desktop use. We're working on making the complex node interactions work better on mobile devices.</p>
+        <p class="secondary">Please visit us on a larger screen to start mapping.</p>
+      </div>
+    </div>
+
     <div id="app">
       <!-- Top toolbar -->
       <div id="toolbar">
@@ -121,6 +131,6 @@
     </div>
     <script type="module" src="/src/main.ts"></script>
     <!-- Hidden file input for Import -->
-    <input type="file" id="import-file-input" style="display: none;" accept=".md,.txt" />
+    <input type="file" id="import-file-input" style="display: none;" accept=".md,.txt,.opml" />
   </body>
 </html>

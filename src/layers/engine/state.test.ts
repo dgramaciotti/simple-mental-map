@@ -123,4 +123,66 @@ describe('StateEngine', () => {
     expect(node?.style?.lineColor).toBe('#00ff00');
     expect(node?.style?.fontSize).toBe(24);
   });
+
+  describe('getMaxFontSize', () => {
+    it('should return the base font size if no node has a custom size', () => {
+      expect(engine.getMaxFontSize(16)).toBe(16);
+    });
+
+    it('should return the largest font size found in the tree', () => {
+      engine.updateNodeStyle('child1', { fontSize: 32 });
+      expect(engine.getMaxFontSize(16)).toBe(32);
+    });
+
+    it('should return base font size if custom font sizes are smaller', () => {
+      engine.updateNodeStyle('child1', { fontSize: 12 });
+      expect(engine.getMaxFontSize(16)).toBe(16);
+    });
+
+    it('should find font size in deeply nested nodes', () => {
+      const gid = engine.addNode('child1', 'Grandchild')!;
+      engine.updateNodeStyle(gid, { fontSize: 48 });
+      expect(engine.getMaxFontSize(16)).toBe(48);
+    });
+  });
+
+  describe('buildRenderTree', () => {
+    it('should return a tree with the same structure', () => {
+      const renderTree = engine.buildRenderTree(n => n.content);
+      expect(renderTree.id).toBe('root');
+      expect(renderTree.children).toHaveLength(1);
+      expect(renderTree.children[0].id).toBe('child1');
+    });
+
+    it('should create new object references', () => {
+      const renderTree = engine.buildRenderTree(n => n.content);
+      expect(renderTree).not.toBe(engine.getRoot());
+      expect(renderTree.children[0]).not.toBe(engine.getRoot().children[0]);
+    });
+
+    it('should apply the style function to content', () => {
+      const renderTree = engine.buildRenderTree(n => `[${n.content}]`);
+      expect(renderTree.content).toBe('[Root]');
+      expect(renderTree.children[0].content).toBe('[Child 1]');
+    });
+
+    it('should NOT mutate the original tree', () => {
+      engine.buildRenderTree(n => `STYLING(${n.content})`);
+      expect(engine.getRoot().content).toBe('Root');
+      expect(engine.getRoot().children[0].content).toBe('Child 1');
+    });
+
+    it('should preserve styles in the new nodes', () => {
+      engine.updateNodeStyle('child1', { fontSize: 20 });
+      const renderTree = engine.buildRenderTree(n => n.content);
+      expect(renderTree.children[0].style?.fontSize).toBe(20);
+    });
+
+    it('should explicitly preserve lineColor for the renderer', () => {
+      engine.updateNodeStyle('child1', { lineColor: '#ff00ff' });
+      const renderTree = engine.buildRenderTree(n => n.content);
+      // We expect the style object to be preserved in the render node
+      expect(renderTree.children[0].style?.lineColor).toBe('#ff00ff');
+    });
+  });
 });

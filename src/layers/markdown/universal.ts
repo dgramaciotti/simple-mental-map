@@ -1,4 +1,5 @@
 import { MapNode } from './parser';
+import { decodeOPML } from './opml';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
@@ -20,11 +21,20 @@ export class UniversalParser {
       return { id: generateId(), content: 'Untitled Map', children: [] };
     }
 
+    if (this.isOPML(trimmed)) {
+      return decodeOPML(trimmed);
+    }
+
     if (this.isMarkdown(trimmed)) {
       return await this.parseAsMarkdown(trimmed);
     }
 
     return this.parseAsIndented(trimmed);
+  }
+
+  private isOPML(input: string): boolean {
+    const head = input.slice(0, 100).toLowerCase();
+    return head.includes('<opml') || head.includes('<?xml');
   }
 
   private isMarkdown(input: string): boolean {

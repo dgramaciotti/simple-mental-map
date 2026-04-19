@@ -430,6 +430,20 @@ button:hover { background: var(--bg); }
   font-weight: 400;
   font-size: var(--map-font-size);
   font-family: var(--font);
+  line-height: 1.2;
+}
+
+/* Fix clipping and remove dark backgrounds from markmap nodes */
+.markmap-node foreignObject {
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+.markmap-node foreignObject div,
+.markmap-node foreignObject span {
+  background: transparent !important;
+  padding: 0 !important;
+  overflow: visible !important;
 }
 
 /* Selected node — uses box-shadow so it never affects layout or triggers re-render */
@@ -751,6 +765,69 @@ button:hover { background: var(--bg); }
 
 .theme-forest .markmap-node text {
   font-style: italic;
+}
+
+/* ── Mobile Warning ── */
+#mobile-warning {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg);
+  background-image: radial-gradient(circle at top left, rgba(79, 143, 247, 0.15), transparent 40%),
+                    radial-gradient(circle at bottom right, rgba(229, 72, 77, 0.1), transparent 40%);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: var(--text);
+}
+
+.warning-card {
+  max-width: 320px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.warning-icon {
+  font-size: 48px;
+  margin-bottom: 24px;
+}
+
+.warning-card h1 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.warning-card p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.warning-card p.secondary {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  #app {
+    display: none !important;
+  }
+  #mobile-warning {
+    display: flex !important;
+  }
 }
 
 /* ── Floating Map Actions ── */
