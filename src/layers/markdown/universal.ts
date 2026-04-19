@@ -5,9 +5,12 @@ function generateId(): string {
 }
 
 function unescapeHTML(html: string): string {
-  if (typeof document === 'undefined') return html; // For tests
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.documentElement.textContent || html;
+  if (!html) return '';
+  return html.replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'");
 }
 
 export class UniversalParser {

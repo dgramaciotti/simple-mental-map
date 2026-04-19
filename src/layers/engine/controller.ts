@@ -35,34 +35,38 @@ export class MapController {
       const root: MapNode = { 
         id: 'root', 
         content: firstLine, 
+        style: { fontSize: 24, textColor: '#4f8ff7' },
         children: [
           {
             id: 'node-1',
-            content: 'Core Features',
+            content: 'Core **Features**',
             children: [
-              { id: 'node-1-1', content: 'Drag & Drop to organize', children: [] },
-              { id: 'node-1-2', content: 'Inline editing (Double click)', children: [] },
-              { id: 'node-1-3', content: 'Dark/Light themes', children: [] }
+              { id: 'node-1-1', content: 'Drag & Drop to organized', children: [] },
+              { id: 'node-1-2', content: 'Inline editing (*Double click*)', children: [] },
+              { id: 'node-1-3', content: '`Dark/Light` themes', children: [] }
             ]
           },
           {
             id: 'node-2',
-            content: 'Export Options',
+            content: 'Custom **Styling**',
+            style: { textColor: '#ec4899', fontSize: 18, lineColor: '#ec4899' },
             children: [
-              { id: 'node-2-1', content: 'Markdown (.md)', children: [] },
-              { id: 'node-2-2', content: 'Plain Text (.txt)', children: [] },
-              { id: 'node-2-3', content: 'Vector SVG', children: [] }
+              { id: 'node-2-1', content: 'Per-node colors', children: [] },
+              { id: 'node-2-2', content: 'Variable font sizes', children: [] },
+              { id: 'node-2-3', content: 'Custom line colors', children: [] }
             ]
           },
           {
             id: 'node-3',
-            content: 'Quick Tips',
+            content: 'Rich *Content*',
+            style: { textColor: '#10b981', lineColor: '#10b981' },
             children: [
-              { id: 'node-3-1', content: 'Use + to add nodes', children: [] },
-              { id: 'node-3-2', content: 'Auto-saving enabled', children: [] }
+              { id: 'node-3-1', content: '**Bold** & *Italic*', children: [] },
+              { id: 'node-3-2', content: '`Code blocks`', children: [] },
+              { id: 'node-3-3', content: '~~Strikethrough~~', children: [] }
             ]
           }
-        ] 
+        ]
       };
       activeId = this.store.createMap(firstLine, root);
       treeData = root;
@@ -135,6 +139,11 @@ export class MapController {
     this.store.saveMap(this.activeId, this.engine.serialize());
   }
 
+  updateNodeStyle(id: string, style: Partial<NonNullable<MapNode['style']>>): void {
+    this.engine.updateNodeStyle(id, style);
+    this.saveCurrent();
+  }
+
   getTheme(): string {
     return this.store.getConfig().themeId || 'classic';
   }
@@ -150,15 +159,34 @@ export class MapController {
     return {
       fontSize: config.fontSize || 13,
       branchWidth: config.branchWidth || 1.5,
-      spacing: config.spacing || 80
+      spacing: config.spacing || 80,
+      textColor: config.textColor || '',
+      lineColor: config.lineColor || '',
+      lineWidth: config.lineWidth || 1.5,
+      maxNodeWidth: config.maxNodeWidth || 0,
+      nodePadding: config.nodePadding || 16
     };
   }
 
-  setLayoutSettings(settings: { fontSize?: number, branchWidth?: number, spacing?: number }): void {
+  setLayoutSettings(settings: { 
+    fontSize?: number, 
+    branchWidth?: number, 
+    spacing?: number,
+    textColor?: string,
+    lineColor?: string,
+    lineWidth?: number,
+    maxNodeWidth?: number,
+    nodePadding?: number
+  }): void {
     const config = this.store.getConfig();
     if (settings.fontSize !== undefined) config.fontSize = settings.fontSize;
     if (settings.branchWidth !== undefined) config.branchWidth = settings.branchWidth;
     if (settings.spacing !== undefined) config.spacing = settings.spacing;
+    if (settings.textColor !== undefined) config.textColor = settings.textColor;
+    if (settings.lineColor !== undefined) config.lineColor = settings.lineColor;
+    if (settings.lineWidth !== undefined) config.lineWidth = settings.lineWidth;
+    if (settings.maxNodeWidth !== undefined) config.maxNodeWidth = settings.maxNodeWidth;
+    if (settings.nodePadding !== undefined) config.nodePadding = settings.nodePadding;
     this.store.saveConfig(config);
   }
 }

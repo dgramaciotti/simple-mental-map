@@ -42,3 +42,6 @@ npm run build
 
 ## Deployment
 This project is configured for GitHub Pages via GitHub Actions. Push to the `main` branch to trigger a deployment. The build output is located in the `dist` directory.
+
+## License
+MIT © 2026 Daniel Guedes

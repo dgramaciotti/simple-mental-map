@@ -25,6 +25,23 @@ describe('MapStore', () => {
     expect(config.activeMapId).toBe('');
   });
 
+  it('should persist new layout settings', () => {
+    const config = store.getConfig();
+    config.textColor = '#123456';
+    config.lineColor = '#654321';
+    config.lineWidth = 3;
+    config.maxNodeWidth = 200;
+    config.nodePadding = 15;
+    store.saveConfig(config);
+
+    const reloaded = store.getConfig();
+    expect(reloaded.textColor).toBe('#123456');
+    expect(reloaded.lineColor).toBe('#654321');
+    expect(reloaded.lineWidth).toBe(3);
+    expect(reloaded.maxNodeWidth).toBe(200);
+    expect(reloaded.nodePadding).toBe(15);
+  });
+
   it('should create and save a map', () => {
     const root = { id: 'root', content: 'Test Map', children: [] };
     const id = store.createMap('Test Map', root);

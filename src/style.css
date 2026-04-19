@@ -342,6 +342,29 @@ body {
   transform: scale(1.2);
 }
 
+.sidebar-color-picker {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 2px;
+  margin-bottom: 12px;
+}
+
+.sidebar-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.sidebar-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+}
+
 .palette-item {
   padding: 8px 12px;
   border: 1px solid var(--border);
@@ -402,23 +425,26 @@ button:hover { background: var(--bg); }
 .markmap-node text,
 .markmap-node div,
 .markmap-node span {
-  fill: var(--text) !important;
-  color: var(--text) !important;
-  font-weight: 500 !important;
-  font-size: var(--map-font-size) !important;
-  font-family: var(--font) !important;
+  fill: var(--text);
+  color: var(--text);
+  font-weight: 400;
+  font-size: var(--map-font-size);
+  font-family: var(--font);
 }
 
-/* Selected node */
-.markmap-node.selected text,
-.markmap-node.selected div {
-  fill: var(--accent) !important;
-  color: var(--accent) !important;
+/* Selected node — uses box-shadow so it never affects layout or triggers re-render */
+.markmap-node.selected foreignObject {
+  overflow: visible;
+}
+
+.markmap-node.selected foreignObject > div > div {
+  box-shadow: 0 0 0 2px var(--accent);
+  border-radius: 4px;
 }
 
 .markmap-node.selected circle {
-  fill: var(--accent) !important;
   stroke: var(--accent) !important;
+  stroke-width: 3px !important;
 }
 
 /* Drop target */
@@ -577,6 +603,20 @@ button:hover { background: var(--bg); }
   color: #fff;
 }
 
+.sidebar-btn.tertiary {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 12px;
+}
+
+.sidebar-btn.tertiary:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
 .modal-btn:hover {
   filter: brightness(1.1);
 }
@@ -711,4 +751,70 @@ button:hover { background: var(--bg); }
 
 .theme-forest .markmap-node text {
   font-style: italic;
+}
+
+/* ── Floating Map Actions ── */
+#map-actions-floating {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+#reset-view-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+#reset-view-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+#reset-view-btn:active {
+  transform: translateY(0);
+}
+
+.floating-item {
+  background: var(--accent);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  border: none;
+}
+
+.floating-item:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.floating-item:active {
+  cursor: grabbing;
 }

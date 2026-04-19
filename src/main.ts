@@ -1,6 +1,7 @@
 import { Markmap } from 'markmap-view';
 import * as d3 from 'd3';
 import { MapController } from './layers/engine/controller';
+import { MapNode } from './layers/markdown/parser';
 import { MapStore } from './layers/engine/store';
 import { encodeMarkdown } from './layers/markdown/encoder';
 import { encodePlainText } from './layers/markdown/text-encoder';
@@ -10,22 +11,23 @@ import { initMapList } from './ui/map-list';
 import { initMenu } from './ui/menu';
 import { showModal, showPromptModal, showSelectionModal } from './ui/modal';
 import { downloadBlob, getSvgSource } from './utils/export-utils';
-import { applyTheme } from './utils/theme';
+import { applyTheme, THEMES } from './utils/theme';
+import { htmlToMarkdown, markdownToHtml } from './utils/html-md';
 import './style.css';
 
 const DEFAULT_MD = `# 🚀 Mental Map Demo
-- Core Features
+- **Core** Features
   - Drag & Drop to organize
-  - Inline editing (Double click)
+  - Inline editing (*Double click*)
   - Dark/Light mode support
-- Export Options
-  - Markdown (.md)
-  - Plain Text (.txt)
-  - Vector SVG
-- Quick Tips
-  - Use + button to add children
-  - Right click nodes for actions
-  - Settings panel for custom design`;
+- Custom **Styling** 🎨
+  - Per-node colors
+  - Variable font sizes
+  - Custom line colors
+- Rich *Content*
+  - **Bold** & *Italic*
+  - \`Code blocks\`
+  - ~~Strikethrough~~`;
 
 // 1. Initialize Controller
 const store = new MapStore();
@@ -61,6 +63,20 @@ function showSidebar(nodeId: string) {
   nodeLabel.value = node.content;
   nodeIdSpan.textContent = node.id;
   nodeChildrenCount.textContent = String(node.children.length);
+
+  // Per-node styles
+  const defaultText = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+  const theme = THEMES.find(t => t.id === controller.getTheme()) || THEMES[0];
+  const defaultLine = theme.branchColors[0];
+
+  if (nodeTextColorPicker) nodeTextColorPicker.value = node.style?.textColor || (defaultText.startsWith('#') ? defaultText : '#e0e0e0');
+  if (nodeLineColorPicker) nodeLineColorPicker.value = node.style?.lineColor || defaultLine;
+  
+  if (nodeFontSizeSlider) {
+    const settings = controller.getLayoutSettings();
+    nodeFontSizeSlider.value = (node.style?.fontSize || settings.fontSize).toString();
+    if (nodeFontSizeVal) nodeFontSizeVal.textContent = node.style?.fontSize ? `${node.style.fontSize}px` : 'inherit';
+  }
 }
 
 function hideSidebar() {
@@ -212,10 +228,6 @@ initMenu({
       }
     },
     {
-      label: 'Reset View',
-      onClick: () => mm.fit()
-    },
-    {
       label: 'Clear current map',
       danger: true,
       onClick: () => {
@@ -240,8 +252,11 @@ function startInlineEdit(nodeId: string, nodeElement: Element) {
   const node = engine.findNode(nodeId);
   if (!node) return;
 
-  // 1. Target the actual text container (ignore the "+" button)
-  const textEl = nodeElement.querySelector('foreignObject div, foreignObject span') as HTMLElement;
+  // 1. Target the actual text container (prioritize the styled span)
+  let textEl = nodeElement.querySelector('foreignObject span[style]') as HTMLElement;
+  if (!textEl) {
+    textEl = nodeElement.querySelector('foreignObject div, foreignObject span') as HTMLElement;
+  }
   const computed = textEl ? window.getComputedStyle(textEl) : null;
   
   // 2. Get screen dimensions (zoomed)
@@ -264,7 +279,7 @@ function startInlineEdit(nodeId: string, nodeElement: Element) {
   const editor = document.createElement('div');
   editor.contentEditable = 'true';
   editor.className = 'inline-edit-input';
-  editor.innerText = node.content;
+  editor.innerText = htmlToMarkdown(node.content);
   
   // 4. Apply precise visual styles
   if (computed) {
@@ -294,9 +309,9 @@ function startInlineEdit(nodeId: string, nodeElement: Element) {
   editor.focus();
 
   const commit = () => {
-    const newVal = editor.innerText.trim();
-    if (newVal !== undefined && newVal !== node.content) {
-      node.content = newVal || '...';
+    const newValMd = editor.innerText.trim();
+    if (newValMd !== undefined && newValMd !== node.content) {
+      node.content = newValMd || '...';
       updateView();
       showSidebar(nodeId);
     }
@@ -331,14 +346,9 @@ nodeLabel.addEventListener('input', () => {
     const node = engine.findNode(selectedNodeId);
     if (node) {
       node.content = nodeLabel.value;
+      updateView();
       scheduleAutoSave();
     }
-  }
-});
-
-nodeLabel.addEventListener('change', () => {
-  if (selectedNodeId) {
-    updateView();
   }
 });
 
@@ -382,15 +392,34 @@ const attachDrag = initDND({
 // Initialize Palette
 initPalette(engine, updateView, svg as SVGSVGElement);
 
+const fontSizeSlider = document.getElementById('font-size-slider') as HTMLInputElement;
+const fontSizeVal = document.getElementById('font-size-val');
+const branchWidthSlider = document.getElementById('branch-width-slider') as HTMLInputElement;
+const branchWidthVal = document.getElementById('branch-width-val');
+const spacingSlider = document.getElementById('spacing-slider') as HTMLInputElement;
+const spacingVal = document.getElementById('spacing-val');
+
+// Note: Global color and padding overrides removed per user request.
+
+const nodeTextColorPicker = document.getElementById('node-text-color-picker') as HTMLInputElement;
+const nodeLineColorPicker = document.getElementById('node-line-color-picker') as HTMLInputElement;
+const nodeFontSizeSlider = document.getElementById('node-font-size-slider') as HTMLInputElement;
+const nodeFontSizeVal = document.getElementById('node-font-size-val');
+const resetNodeStyleBtn = document.getElementById('reset-node-style');
+
 // Theme Support
 const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
 
+// Map Navigation Actions
+const resetViewBtn = document.getElementById('reset-view-btn');
+resetViewBtn?.addEventListener('click', () => {
+  mm.fit();
+});
+
 function applyThemeColors(themeId: string) {
-  const theme = applyTheme(themeId);
-  const colorScale = d3.scaleOrdinal(theme.branchColors);
-  mm.setOptions({ 
-    color: (node: any) => colorScale(node.state?.path || node.id) 
-  });
+  applyTheme(themeId);
+  applyLayoutSettings();
+  updateView();
 }
 
 if (themeSelect) {
@@ -407,35 +436,58 @@ if (themeSelect) {
 }
 
 // Layout Support
-const fontSizeSlider = document.getElementById('font-size-slider') as HTMLInputElement;
-const fontSizeVal = document.getElementById('font-size-val');
-const branchWidthSlider = document.getElementById('branch-width-slider') as HTMLInputElement;
-const branchWidthVal = document.getElementById('branch-width-val');
-const spacingSlider = document.getElementById('spacing-slider') as HTMLInputElement;
-const spacingVal = document.getElementById('spacing-val');
 
 function applyLayoutSettings() {
+  if (!mm) return;
   const settings = controller.getLayoutSettings();
   const root = document.documentElement;
+  const theme = THEMES.find(t => t.id === controller.getTheme()) || THEMES[0];
   
-  // Apply CSS Variables
+  // 1. Apply CSS Variables
   root.style.setProperty('--map-font-size', `${settings.fontSize}px`);
   root.style.setProperty('--branch-width', `${settings.branchWidth}px`);
   
-  // Update Value Hints
+  // Custom text color
+  if (settings.textColor) {
+    root.style.setProperty('--text', settings.textColor);
+  } else {
+    root.style.setProperty('--text', theme.variables['--text']);
+  }
+
+  // 2. Sync UI Hints (Safe check for presence)
   if (fontSizeVal) fontSizeVal.textContent = `${settings.fontSize}px`;
   if (branchWidthVal) branchWidthVal.textContent = `${settings.branchWidth}px`;
   if (spacingVal) spacingVal.textContent = `${settings.spacing}`;
-  
-  // Sync Sliders
-  if (fontSizeSlider) fontSizeSlider.value = settings.fontSize.toString();
-  if (branchWidthSlider) branchWidthSlider.value = settings.branchWidth.toString();
-  if (spacingSlider) spacingSlider.value = settings.spacing.toString();
 
-  // Apply to Markmap Engine
+  // 3. Sync Inputs (Prevent event loops by checking value first)
+  if (fontSizeSlider && fontSizeSlider.value !== settings.fontSize.toString()) fontSizeSlider.value = settings.fontSize.toString();
+  if (branchWidthSlider && branchWidthSlider.value !== settings.branchWidth.toString()) branchWidthSlider.value = settings.branchWidth.toString();
+  if (spacingSlider && spacingSlider.value !== settings.spacing.toString()) spacingSlider.value = settings.spacing.toString();
+  
+  // 4. Update Markmap Options
+  const colorScale = d3.scaleOrdinal(theme.branchColors);
+  
   mm.setOptions({
     spacingHorizontal: settings.spacing,
-    spacingVertical: Math.floor(settings.spacing / 8) // proportional vertical spacing
+    spacingVertical: (() => {
+      // Scan for the largest font size in the current tree to find a safe global gap
+      const allNodes = engine.serialize();
+      let maxFs = settings.fontSize;
+      const findMax = (n: MapNode) => {
+        if (n.style?.fontSize && n.style.fontSize > maxFs) maxFs = n.style.fontSize;
+        n.children.forEach(findMax);
+      };
+      findMax(allNodes);
+      // Return a safe numeric gap
+      return Math.max(10, Math.floor(maxFs * 0.6));
+    })(),
+    paddingX: 16,
+    color: (node: any) => {
+      // Per-node override
+      const nodeData = engine.findNode(node.id);
+      if (nodeData?.style?.lineColor) return nodeData.style.lineColor;
+      return colorScale(node.state?.path || node.id);
+    }
   });
 }
 
@@ -461,6 +513,39 @@ spacingSlider?.addEventListener('input', () => {
   updateView(); // Re-layout necessary for spacing change
 });
 
+// Per-node listeners
+nodeFontSizeSlider?.addEventListener('input', () => {
+  if (selectedNodeId) {
+    const val = parseInt(nodeFontSizeSlider.value);
+    controller.updateNodeStyle(selectedNodeId, { fontSize: val });
+    if (nodeFontSizeVal) nodeFontSizeVal.textContent = `${val}px`;
+    updateView();
+  }
+});
+
+nodeTextColorPicker?.addEventListener('input', () => {
+  if (selectedNodeId) {
+    controller.updateNodeStyle(selectedNodeId, { textColor: nodeTextColorPicker.value });
+    updateView();
+  }
+});
+
+nodeLineColorPicker?.addEventListener('input', () => {
+  if (selectedNodeId) {
+    controller.updateNodeStyle(selectedNodeId, { lineColor: nodeLineColorPicker.value });
+    updateView();
+  }
+});
+
+resetNodeStyleBtn?.addEventListener('click', () => {
+  if (selectedNodeId) {
+    controller.updateNodeStyle(selectedNodeId, { textColor: undefined, lineColor: undefined, fontSize: undefined });
+    applyLayoutSettings();
+    updateView();
+    showSidebar(selectedNodeId); // Refresh pickers
+  }
+});
+
 // 4. Design Accordion Toggle
 const designHeader = document.querySelector('.design-header');
 const designContainer = document.getElementById('design-container');
@@ -469,21 +554,37 @@ designHeader?.addEventListener('click', () => {
 });
 
 function updateView() {
-  const root = engine.getRoot();
+  const data = engine.serialize();
+  
+  // 5. Inject per-node styles into the content for rendering
+  const injectStyles = (node: MapNode) => {
+    // Convert raw Markdown to HTML for rendering (data model stores raw MD)
+    node.content = markdownToHtml(node.content);
+
+    if (node.style?.textColor || node.style?.fontSize) {
+      const colorStyle = node.style?.textColor ? `color: ${node.style.textColor};` : '';
+      const sizeStyle = node.style?.fontSize ? `font-size: ${node.style.fontSize}px;` : '';
+      node.content = `<span style="${colorStyle}${sizeStyle}">${node.content}</span>`;
+    }
+    node.children.forEach(injectStyles);
+  };
+  injectStyles(data);
 
   // Perf: disable transitions for large maps
-  const nodeCount = engine.countNodes(root);
+  const nodeCount = engine.countNodes(data);
   mm.setOptions({ duration: nodeCount > 100 ? 0 : 500 });
 
   // Force a fresh object reference to ensure Markmap's D3 diffing triggers a visual update
-  const rootClone = JSON.parse(JSON.stringify(root));
+  const rootClone = JSON.parse(JSON.stringify(data));
   mm.setData(rootClone as any);
   
   // Removed automatic mm.fit() from here to prevent "dislocation" during edits
 
   setTimeout(() => {
     // Perf: pause observer to prevent feedback loop
-    observer.disconnect();
+    if (typeof observer !== 'undefined') {
+      observer.disconnect();
+    }
     attachDrag();
 
     // RESTORE VISUAL SELECTION
@@ -493,7 +594,9 @@ function updateView() {
         .classed('selected', true);
     }
 
-    observer.observe(svg, { childList: true, subtree: true });
+    if (typeof observer !== 'undefined') {
+      observer.observe(svg, { childList: true, subtree: true });
+    }
   }, 500);
 
   scheduleAutoSave();

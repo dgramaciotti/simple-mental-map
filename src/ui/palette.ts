@@ -26,15 +26,11 @@ export function initPalette(engine: StateEngine, updateView: () => void, svgElem
     const gElement = svgElement.querySelector('g') as SVGGraphicsElement;
     if (!gElement) return;
     
-    console.log('[MindMap Palette] Dropped at (client):', { clientX, clientY });
-
     // Find nearest node using screen-space coordinates
     const target = findNearestToPoint(clientX, clientY);
     const td = target ? d3.select(target).datum() as any : null;
     const targetId = td?.data?.id || td?.id;
 
-    console.log('[MindMap Palette] Nearest node found:', { targetId, datum: td });
-    
     if (targetId) {
       showPromptModal({
         title: 'New Idea',
@@ -42,13 +38,10 @@ export function initPalette(engine: StateEngine, updateView: () => void, svgElem
         defaultValue: 'New Idea',
         confirmText: 'Add Node',
         onConfirm: (content) => {
-          console.log('[MindMap Palette] Adding node to parent:', targetId);
           engine.addNode(targetId, content);
           updateView();
         }
       });
-    } else {
-      console.warn('[MindMap Palette] No valid target parent found for drop.');
     }
   });
 }
@@ -83,15 +76,6 @@ function findNearestToPoint(clientX: number, clientY: number): any {
       nearest = this;
     }
   });
-
-  if (nearest) {
-    const nd = d3.select(nearest).datum() as any;
-    console.log('[MindMap Palette] Nearest Candidate:', { 
-      content: nd?.content, 
-      id: nd?.id, 
-      distance: Math.round(minDistance) 
-    });
-  }
 
   return nearest;
 }

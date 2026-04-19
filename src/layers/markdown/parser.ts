@@ -4,6 +4,11 @@ export interface MapNode {
   id: string;
   content: string;
   children: MapNode[];
+  style?: {
+    textColor?: string;
+    lineColor?: string;
+    fontSize?: number;
+  };
 }
 
 function generateId(): string {
@@ -13,8 +18,13 @@ function generateId(): string {
 const transformer = new Transformer();
 
 function unescapeHTML(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.documentElement.textContent || html;
+  if (!html) return '';
+  // Only unescape common entities to avoid breaking HTML structure
+  return html.replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'");
 }
 
 export function parseMarkdown(md: string): MapNode {

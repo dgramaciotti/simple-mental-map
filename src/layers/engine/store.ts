@@ -14,6 +14,11 @@ export interface AppConfig {
   fontSize?: number;
   branchWidth?: number;
   spacing?: number;
+  textColor?: string;
+  lineColor?: string;
+  lineWidth?: number;
+  maxNodeWidth?: number;
+  nodePadding?: number;
   maps: MapMeta[];
 }
 

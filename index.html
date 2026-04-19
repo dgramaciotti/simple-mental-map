@@ -34,16 +34,30 @@
             <label class="sidebar-label">Children</label>
             <span id="node-children-count" class="sidebar-id">0</span>
           </div>
+          
+          <div class="sidebar-action-group node-style-group">
+            <div class="sidebar-label-row">
+              <label class="sidebar-label">Node Font Size</label>
+              <span id="node-font-size-val" class="sidebar-val-hint">inherit</span>
+            </div>
+            <input type="range" id="node-font-size-slider" min="8" max="48" step="1" value="16" class="sidebar-slider" />
+          </div>
+
+          <div class="sidebar-action-group node-style-group">
+            <label class="sidebar-label">Node Text Color</label>
+            <input type="color" id="node-text-color-picker" class="sidebar-color-picker" />
+          </div>
+
+          <div class="sidebar-action-group node-style-group">
+            <label class="sidebar-label">Node Line Color</label>
+            <input type="color" id="node-line-color-picker" class="sidebar-color-picker" />
+          </div>
+
+          <button id="reset-node-style" class="sidebar-btn tertiary">Reset Style</button>
+
           <hr class="sidebar-divider" />
           <button id="add-child" class="sidebar-btn primary">+ Add child</button>
           <button id="delete-node" class="sidebar-btn danger">Delete</button>
-        </div>
-
-        
-        <!-- 2. Quick Actions -->
-        <div class="sidebar-section-header">Quick Actions</div>
-        <div id="sidebar-actions">
-          <div class="palette-item" draggable="true" id="new-node-template">+ New node</div>
         </div>
 
         <hr class="sidebar-divider" />
@@ -68,7 +82,7 @@
 
             <div class="sidebar-action-group">
               <div class="sidebar-label-row">
-                <label class="sidebar-label">Font Size</label>
+                <label class="sidebar-label">Base Font Size</label>
                 <span id="font-size-val" class="sidebar-val-hint">13px</span>
               </div>
               <input type="range" id="font-size-slider" min="10" max="24" step="1" value="13" class="sidebar-slider" />
@@ -90,6 +104,16 @@
               <input type="range" id="spacing-slider" min="40" max="150" step="10" value="80" class="sidebar-slider" />
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Floating map actions -->
+      <div id="map-actions-floating">
+        <button id="reset-view-btn" title="Reset View (Fit Map)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <div class="palette-item floating-item" draggable="true" id="new-node-template" title="Drag to map to add node">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
       </div>
 

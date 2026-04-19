@@ -115,4 +115,12 @@ describe('StateEngine', () => {
     engine.moveNode('child1', 'root');
     expect(JSON.stringify(engine.getRoot())).toBe(initialStructure);
   });
+
+  it('should update node style', () => {
+    engine.updateNodeStyle('child1', { textColor: '#ff0000', lineColor: '#00ff00', fontSize: 24 });
+    const node = engine.findNode('child1');
+    expect(node?.style?.textColor).toBe('#ff0000');
+    expect(node?.style?.lineColor).toBe('#00ff00');
+    expect(node?.style?.fontSize).toBe(24);
+  });
 });

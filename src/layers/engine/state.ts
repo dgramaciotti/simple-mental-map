@@ -94,4 +94,12 @@ export class StateEngine {
     }
     return count;
   }
+
+  updateNodeStyle(id: string, style: Partial<NonNullable<MapNode['style']>>): void {
+    const node = this.findNode(id);
+    if (node) {
+      if (!node.style) node.style = {};
+      Object.assign(node.style, style);
+    }
+  }
 }

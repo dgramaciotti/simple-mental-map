@@ -152,4 +152,29 @@ describe('Multi-Map Integration (MapController)', () => {
     const root = store.loadMap(id);
     expect(root?.content).toBe('Updated Content');
   });
+
+  it('should get and set global layout settings', () => {
+    // Check defaults
+    const settings = controller.getLayoutSettings();
+    expect(settings.fontSize).toBe(13);
+    
+    // Set new values
+    controller.setLayoutSettings({
+      fontSize: 20,
+      textColor: '#ff0000',
+      lineColor: '#00ff00',
+      lineWidth: 4,
+      maxNodeWidth: 300,
+      nodePadding: 20
+    });
+    
+    // Verify
+    const updated = controller.getLayoutSettings();
+    expect(updated.fontSize).toBe(20);
+    expect(updated.textColor).toBe('#ff0000');
+    expect(updated.lineColor).toBe('#00ff00');
+    expect(updated.lineWidth).toBe(4);
+    expect(updated.maxNodeWidth).toBe(300);
+    expect(updated.nodePadding).toBe(20);
+  });
 });
