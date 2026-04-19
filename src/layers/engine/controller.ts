@@ -2,6 +2,7 @@ import { StateEngine } from './state';
 import { MapStore, MapMeta } from './store';
 import { MapNode } from '../markdown/parser';
 import { UniversalParser } from '../markdown/universal';
+import { HistoryManager } from './history';
 
 const universalParser = new UniversalParser();
 
@@ -14,8 +15,10 @@ export class MapController {
   private store: MapStore;
   private engine: StateEngine;
   private activeId: string;
+  private history: HistoryManager;
   constructor(options: ControllerOptions) {
     this.store = options.store;
+    this.history = new HistoryManager(10); // As per user request: 10 steps
     const defaultMarkdown = options.defaultMarkdown || '# Simple Mental Map';
 
     // 1. Determine active map
@@ -94,6 +97,7 @@ export class MapController {
     
     const newData = this.store.loadMap(id);
     if (newData) {
+      this.history.clear(); // Clear history when switching maps to avoid cross-map undo
       this.activeId = id;
       this.store.setActiveMapId(id);
       this.engine.setRoot(newData);
@@ -140,8 +144,34 @@ export class MapController {
   }
 
   updateNodeStyle(id: string, style: Partial<NonNullable<MapNode['style']>>): void {
+    this.history.push(this.engine.serialize());
     this.engine.updateNodeStyle(id, style);
     this.saveCurrent();
+  }
+
+  undo(): MapNode | null {
+    const previous = this.history.undo(this.engine.serialize());
+    if (previous) {
+      this.engine.setRoot(previous);
+      this.saveCurrent();
+      return previous;
+    }
+    return null;
+  }
+
+  redo(): MapNode | null {
+    const next = this.history.redo(this.engine.serialize());
+    if (next) {
+      this.engine.setRoot(next);
+      this.saveCurrent();
+      return next;
+    }
+    return null;
+  }
+
+  // Hook for other components to push to history
+  pushHistory(): void {
+    this.history.push(this.engine.serialize());
   }
 
   getTheme(): string {

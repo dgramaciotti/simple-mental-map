@@ -26,6 +26,8 @@ const CONFIG_KEY = 'mindmap-config';
 const MAP_DATA_PREFIX = 'mindmap-data-';
 
 export class MapStore {
+  public onQuotaExceeded?: () => void;
+
   getConfig(): AppConfig {
     const raw = localStorage.getItem(CONFIG_KEY);
     const config: AppConfig = raw 
@@ -57,7 +59,30 @@ export class MapStore {
   }
 
   saveConfig(config: AppConfig): void {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    try {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    } catch (e) {
+      if (this.isQuotaError(e)) {
+        this.onQuotaExceeded?.();
+      } else {
+        console.error('[MapStore] Failed to save config', e);
+      }
+    }
+  }
+
+  private isQuotaError(e: any): boolean {
+    const name = e?.name || '';
+    const code = e?.code || 0;
+    const message = e?.message || '';
+
+    return (
+      e instanceof DOMException ||
+      name === 'QuotaExceededError' ||
+      name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      code === 22 ||
+      code === 1014 ||
+      message.includes('QuotaExceededError')
+    );
   }
 
   loadMap(id: string): MapNode | null {
@@ -72,14 +97,22 @@ export class MapStore {
   }
 
   saveMap(id: string, root: MapNode): void {
-    localStorage.setItem(`${MAP_DATA_PREFIX}${id}`, JSON.stringify(root));
-    
-    // Update updatedAt in config
-    const config = this.getConfig();
-    const map = config.maps.find(m => m.id === id);
-    if (map) {
-      map.updatedAt = new Date().toISOString();
-      this.saveConfig(config);
+    try {
+      localStorage.setItem(`${MAP_DATA_PREFIX}${id}`, JSON.stringify(root));
+      
+      // Update updatedAt in config
+      const config = this.getConfig();
+      const map = config.maps.find(m => m.id === id);
+      if (map) {
+        map.updatedAt = new Date().toISOString();
+        this.saveConfig(config);
+      }
+    } catch (e) {
+      if (this.isQuotaError(e)) {
+        this.onQuotaExceeded?.();
+      } else {
+        console.error(`[MapStore] Failed to save map ${id}`, e);
+      }
     }
   }
 
@@ -142,5 +175,13 @@ export class MapStore {
       config.activeMapId = id;
       this.saveConfig(config);
     }
+  }
+
+  clearAll(): void {
+    const config = this.getConfig();
+    config.maps.forEach(m => {
+      localStorage.removeItem(`${MAP_DATA_PREFIX}${m.id}`);
+    });
+    localStorage.removeItem(CONFIG_KEY);
   }
 }

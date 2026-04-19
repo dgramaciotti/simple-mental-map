@@ -17,14 +17,15 @@ function generateId(): string {
 
 const transformer = new Transformer();
 
-function unescapeHTML(html: string): string {
-  if (!html) return '';
-  // Only unescape common entities to avoid breaking HTML structure
-  return html.replace(/&amp;/g, '&')
-             .replace(/&lt;/g, '<')
-             .replace(/&gt;/g, '>')
-             .replace(/&quot;/g, '"')
-             .replace(/&#39;/g, "'");
+function cleanContent(content: string): string {
+  if (!content) return '';
+  // Unescape common entities to ensure consistency in the data model
+  // Note: Sanitization for rendering still happens in ViewManager.
+  return content.replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
 }
 
 export function parseMarkdown(md: string): MapNode {
@@ -33,7 +34,7 @@ export function parseMarkdown(md: string): MapNode {
   function mapNode(node: any): MapNode {
     return {
       id: generateId(),
-      content: unescapeHTML(node.content || node.v || ''),
+      content: cleanContent(node.content || node.v || ''),
       children: (node.children || node.c || []).map(mapNode)
     };
   }

@@ -8,6 +8,7 @@ export interface DNDOptions {
   onSelect?: (nodeId: string, nodeElement: Element) => void;
   onDoubleClick?: (nodeId: string, nodeElement: Element) => void;
   onAddChild?: (parentId: string) => void;
+  onBeforeMove?: () => void;
 }
 
 // Module-level state for highlight tracking
@@ -58,7 +59,7 @@ function findTargetUnderMouse(clientX: number, clientY: number): any {
   return node;
 }
 
-export function initDND({ engine, updateView, svgElement, onSelect, onDoubleClick, onAddChild }: DNDOptions) {
+export function initDND({ engine, updateView, svgElement, onSelect, onDoubleClick, onAddChild, onBeforeMove }: DNDOptions) {
   const svg = d3.select(svgElement);
 
   let dragActivated = false;
@@ -130,6 +131,7 @@ export function initDND({ engine, updateView, svgElement, onSelect, onDoubleClic
       // 3. EXECUTE MOVE
       if (targetId && targetId !== sourceId) {
         try {
+          if (onBeforeMove) onBeforeMove();
           engine.moveNode(sourceId, targetId);
           updateView();
         } catch (e) {

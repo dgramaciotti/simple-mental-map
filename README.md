@@ -1,13 +1,13 @@
 # Simple Mental Map
 
-A lightweight, browser-based mental mapping tool built with Vite, TypeScript, and Markmap.
+A lightweight, browser-based mental mapping tool built with Vite, TypeScript, and Markmap. Everything is stored at the browser localStorage.
 
 ## Features
 - **Drag & Drop**: Reorganize nodes by dragging them to new parents.
 - **Inline Editing**: Double-click any node to rename it instantly.
 - **Multi-Map Support**: Create, rename, and switch between multiple maps.
 - **Persistence**: Maps are automatically saved to your browser's `localStorage`.
-- **Export**: Save your maps as Markdown (`.md`), Plain Text (`.txt`), or Vector Graphic (`.svg`).
+- **Export**: Allows exporting to txt, md, svg and opml.
 - **Custom Design**: Adjust font size, branch thickness, and spacing via the settings panel.
 
 ## Getting Started
